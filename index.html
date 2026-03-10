@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JIA Lead System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.4/Recharts.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Sarabun','Noto Sans Thai',sans-serif; background:#F5F5F5; color:#1A1A1A; }
+::-webkit-scrollbar { height:6px; width:6px; }
+::-webkit-scrollbar-thumb { background:#CCC; border-radius:3px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useCallback, useRef, useMemo } = React;
+const { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } = Recharts;
+
+// ============ BRAND ============
+const B = {
+  red:"#C41E24", redDark:"#9B1B20", redLight:"#FFF0F0",
+  gold:"#D4A84B", dark:"#1A1A1A", gray:"#6B7280", grayLight:"#F3F4F6", white:"#FFFFFF",
+  green:"#16A34A", greenLight:"#F0FDF4", blue:"#2563EB", blueLight:"#EFF6FF",
+  orange:"#EA580C", orangeLight:"#FFF7ED", purple:"#7C3AED", purpleLight:"#F3E8FF",
+};
+
+const STATUS_OPTS = [
+  {value:"ใหม่",color:B.red,bg:B.redLight,icon:"🔴"},
+  {value:"ทักแล้ว",color:B.orange,bg:B.orangeLight,icon:"🟡"},
+  {value:"นัดเรียน",color:B.blue,bg:B.blueLight,icon:"🔵"},
+  {value:"ปิดการขาย",color:B.green,bg:B.greenLight,icon:"🟢"},
+  {value:"ไม่สนใจ",color:B.gray,bg:B.grayLight,icon:"⚫"},
+];
+
+const TEAM = ["ป่าน","แก้มใส","เจ","หมวย"];
+const TEAM_INFO = [
+  {name:"ป่าน",role:"ตอบ Messenger + ปิดการขาย",color:B.blue},
+  {name:"แก้มใส",role:"รับ Lead หลัง 1 ชม.",color:B.purple},
+  {name:"เจ",role:"รับ Lead หลัง 1 ชม.",color:B.orange},
+  {name:"หมวย",role:"Content + อัป Lead",color:B.red},
+];
+
+const INTEREST_MAP = {
+  "อบรม cpr":"อบรม CPR","cpr training":"อบรม CPR","สนใจอบรม_cpr_":"อบรม CPR",
+  "สนใจอบรม":"อบรม CPR","อบรม":"อบรม CPR","คอร์ส":"อบรม CPR",
+  "เช่า":"เช่าอุปกรณ์","เช่าอุปกรณ์":"เช่าอุปกรณ์","aed":"เช่าอุปกรณ์",
+  "องค์กร":"อบรมองค์กร","บริษัท":"อบรมองค์กร","corporate":"อบรมองค์กร",
+  "on-site":"อบรมองค์กร","onsite":"อบรมองค์กร",
+  "คู่มือ":"ดาวน์โหลดคู่มือ","หนังสือ":"ดาวน์โหลดคู่มือ","download":"ดาวน์โหลดคู่มือ",
+  "cprbook":"ดาวน์โหลดคู่มือ","pdf":"ดาวน์โหลดคู่มือ",
+  "สถานที่":"เช่าสถานที่","ห้อง":"เช่าสถานที่",
+  "nl":"เตรียมสอบ","osce":"เตรียมสอบ","acls":"เตรียมสอบ","สอบ":"เตรียมสอบ",
+};
+
+const INTEREST_COLORS = {
+  "อบรม CPR":{bg:"#DBEAFE",text:"#1D4ED8"},"เช่าอุปกรณ์":{bg:"#FEF3C7",text:"#92400E"},
+  "อบรมองค์กร":{bg:"#F3E8FF",text:"#7C3AED"},"ดาวน์โหลดคู่มือ":{bg:"#E0E7FF",text:"#4338CA"},
+  "เช่าสถานที่":{bg:"#CCFBF1",text:"#0D9488"},"เตรียมสอบ":{bg:"#FCE7F3",text:"#BE185D"},
+};
+
+// ============ HELPERS ============
+function parsePhone(raw) {
+  if(!raw) return "";
+  let p = raw.replace(/[^0-9+]/g,"");
+  if(p.startsWith("+66")) p = "0"+p.slice(3);
+  if(p.startsWith("66") && p.length===11) p = "0"+p.slice(2);
+  if(p.length===9 && !p.startsWith("0")) p = "0"+p;
+  return p;
+}
+function classifyInterest(text) {
+  if(!text) return "อบรม CPR";
+  const lower = text.toLowerCase().trim();
+  for(const [key,val] of Object.entries(INTEREST_MAP)) { if(lower.includes(key)) return val; }
+  return text.length > 30 ? "อบรม CPR" : text;
+}
+function formatDate(raw) {
+  if(!raw) return new Date().toLocaleDateString("th-TH");
+  try { const d=new Date(raw); return isNaN(d.getTime()) ? raw : d.toLocaleDateString("th-TH",{year:"numeric",month:"short",day:"numeric"}); }
+  catch { return raw; }
+}
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return [];
+  const header = lines[0];
+  const sep = header.includes("\t") ? "\t" : ",";
+  const cols = header.split(sep).map(c=>c.replace(/"/g,"").trim().toLowerCase());
+
+  const findExact = (...kw) => { const e=cols.findIndex(c=>kw.some(k=>c===k)); return e>=0?e:cols.findIndex(c=>kw.some(k=>c.includes(k))); };
+  const dateIdx = findExact("created_time","created","date","วันที่");
+  const nameIdx = cols.findIndex(c=>c==="full_name")>=0 ? cols.findIndex(c=>c==="full_name") : findExact("ชื่อ");
+  const phoneIdx = cols.findIndex(c=>c==="phone")>=0 ? cols.findIndex(c=>c==="phone") : findExact("เบอร์","โทร");
+  const emailIdx = findExact("email","อีเมล");
+  const interestIdx = findExact("สนใจ","interest","what","which","answer");
+  const firstNameIdx = findExact("first_name");
+  const lastNameIdx = findExact("last_name");
+
+  const leads = [];
+  for(let i=1;i<lines.length;i++) {
+    const vals = lines[i].split(sep).map(v=>v.replace(/"/g,"").trim());
+    if(vals.every(v=>!v)) continue;
+    let name = nameIdx>=0 ? vals[nameIdx] : "";
+    if(!name && firstNameIdx>=0) name = [vals[firstNameIdx],lastNameIdx>=0?vals[lastNameIdx]:""].filter(Boolean).join(" ");
+    if(!name) continue;
+    leads.push({
+      id:`l-${i}-${Date.now()}`, date:formatDate(dateIdx>=0?vals[dateIdx]:null),
+      name, phone:parsePhone(phoneIdx>=0?vals[phoneIdx]:""),
+      email:emailIdx>=0?vals[emailIdx]:"", interest:classifyInterest(interestIdx>=0?vals[interestIdx]:""),
+      status:"ใหม่", note:"", assignee:"", closeDate:"", selected:true,
+    });
+  }
+  return leads;
+}
+
+// ============ COMPONENTS ============
+const td = {padding:"10px 12px",borderBottom:"1px solid #F0F0F0",fontSize:13,whiteSpace:"nowrap"};
+const th = {padding:"12px",fontSize:12,fontWeight:700,color:"#FFF",textAlign:"left",whiteSpace:"nowrap",borderBottom:"2px solid "+B.red};
+
+function StatCard({icon,label,value,sub,color,bg}) {
+  return <div style={{background:bg,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:12,border:`1px solid ${color}22`,flex:"1 1 140px",minWidth:140,position:"relative",overflow:"hidden"}}>
+    <span style={{fontSize:28}}>{icon}</span>
+    <div>
+      <div style={{fontSize:22,fontWeight:700,color,lineHeight:1.1}}>{value}</div>
+      <div style={{fontSize:12,color:B.gray,marginTop:2}}>{label}</div>
+      {sub && <div style={{fontSize:11,color:B.gray,marginTop:2}}>{sub}</div>}
+    </div>
+  </div>;
+}
+
+function LeadRow({lead,index,onUpdate}) {
+  const st = STATUS_OPTS.find(s=>s.value===lead.status)||STATUS_OPTS[0];
+  const ic = INTEREST_COLORS[lead.interest]||{bg:"#F3F4F6",text:"#374151"};
+  return <tr style={{background:index%2===0?B.white:"#FAFAFA"}} onMouseEnter={e=>e.currentTarget.style.background="#FEF3F3"} onMouseLeave={e=>e.currentTarget.style.background=index%2===0?B.white:"#FAFAFA"}>
+    <td style={{...td,textAlign:"center",width:40}}>
+      <input type="checkbox" checked={lead.selected} onChange={e=>onUpdate(lead.id,"selected",e.target.checked)} style={{width:16,height:16,accentColor:B.red}}/>
+    </td>
+    <td style={{...td,fontSize:12,color:B.gray,width:90}}>{lead.date}</td>
+    <td style={{...td,fontWeight:600,color:B.dark}}>{lead.name}</td>
+    <td style={{...td,fontFamily:"monospace",fontSize:13}}>
+      {lead.phone ? <a href={`tel:${lead.phone}`} style={{color:B.blue,textDecoration:"none"}}>{lead.phone}</a> : <span style={{color:"#CCC"}}>—</span>}
+    </td>
+    <td style={{...td,fontSize:12,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis"}}>{lead.email||<span style={{color:"#CCC"}}>—</span>}</td>
+    <td style={td}><span style={{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:12,fontWeight:600,background:ic.bg,color:ic.text}}>{lead.interest}</span></td>
+    <td style={td}>
+      <select value={lead.status} onChange={e=>onUpdate(lead.id,"status",e.target.value)} style={{border:"none",background:st.bg,color:st.color,fontWeight:700,fontSize:12,padding:"4px 8px",borderRadius:8,cursor:"pointer",outline:"none"}}>
+        {STATUS_OPTS.map(s=><option key={s.value} value={s.value}>{s.icon} {s.value}</option>)}
+      </select>
+    </td>
+    <td style={td}>
+      <select value={lead.assignee} onChange={e=>onUpdate(lead.id,"assignee",e.target.value)} style={{border:"1px solid #E5E7EB",background:B.white,fontSize:12,padding:"4px 6px",borderRadius:6,cursor:"pointer",width:70}}>
+        <option value="">—</option>
+        {TEAM.map(m=><option key={m} value={m}>{m}</option>)}
+      </select>
+    </td>
+    <td style={td}>
+      <input type="text" value={lead.note} onChange={e=>onUpdate(lead.id,"note",e.target.value)} placeholder="บันทึก..." style={{border:"1px solid #E5E7EB",borderRadius:6,padding:"4px 8px",fontSize:12,width:"100%",minWidth:80,outline:"none"}}/>
+    </td>
+    <td style={{...td,fontSize:12,color:lead.closeDate?B.green:"#CCC"}}>{lead.closeDate||"—"}</td>
+  </tr>;
+}
+
+function TeamCard({member,leads}) {
+  const my = leads.filter(l=>l.assignee===member.name);
+  const closed = my.filter(l=>l.status==="ปิดการขาย").length;
+  const total = my.length;
+  const rate = total>0?((closed/total)*100).toFixed(0):0;
+  const comm = member.name==="หมวย" ? leads.filter(l=>l.status==="ปิดการขาย").length*10 : closed*90;
+  return <div style={{background:B.white,borderRadius:14,padding:"18px 20px",border:`2px solid ${member.color}20`,flex:"1 1 200px",minWidth:200,boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}}>
+    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+      <div style={{width:40,height:40,borderRadius:12,background:`${member.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:800,color:member.color}}>{member.name[0]}</div>
+      <div><div style={{fontWeight:700,fontSize:15}}>{member.name}</div><div style={{fontSize:11,color:B.gray}}>{member.role}</div></div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+      <div style={{background:B.grayLight,borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:18,fontWeight:800}}>{total}</div><div style={{fontSize:10,color:B.gray}}>Lead</div></div>
+      <div style={{background:B.greenLight,borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:B.green}}>{closed}</div><div style={{fontSize:10,color:B.gray}}>ปิดขาย</div></div>
+      <div style={{background:B.blueLight,borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:B.blue}}>{rate}%</div><div style={{fontSize:10,color:B.gray}}>อัตราปิด</div></div>
+      <div style={{background:B.redLight,borderRadius:8,padding:"8px 10px",textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:B.red}}>฿{comm.toLocaleString()}</div><div style={{fontSize:10,color:B.gray}}>คอมฯ</div></div>
+    </div>
+  </div>;
+}
+
+// ============ MAIN APP ============
+function App() {
+  const [leads,setLeads] = useState([]);
+  const [page,setPage] = useState("upload"); // upload | system | dashboard
+  const [copyMsg,setCopyMsg] = useState("");
+  const [filter,setFilter] = useState("ทั้งหมด");
+  const [search,setSearch] = useState("");
+  const [dragActive,setDragActive] = useState(false);
+  const fileRef = useRef(null);
+
+  const handleFile = useCallback(file => {
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const parsed = parseCSV(e.target.result);
+      if(!parsed.length) { alert("ไม่พบข้อมูล Lead ในไฟล์นี้"); return; }
+      setLeads(parsed);
+      setPage("system");
+    };
+    reader.readAsText(file,"UTF-8");
+  },[]);
+
+  const handleDrop = useCallback(e => { e.preventDefault(); setDragActive(false); handleFile(e.dataTransfer?.files?.[0]); },[handleFile]);
+
+  const updateLead = (id,field,value) => {
+    setLeads(prev=>prev.map(l=>{
+      if(l.id!==id) return l;
+      const u = {...l,[field]:value};
+      if(field==="status"&&value==="ปิดการขาย"&&!l.closeDate) u.closeDate=new Date().toLocaleDateString("th-TH",{year:"numeric",month:"short",day:"numeric"});
+      if(field==="status"&&value!=="ปิดการขาย") u.closeDate="";
+      return u;
+    }));
+  };
+
+  const toggleAll = checked => setLeads(prev=>prev.map(l=>({...l,selected:checked})));
+
+  const autoAssign = () => {
+    const a=["ป่าน","แก้มใส","เจ"]; let idx=0;
+    setLeads(prev=>prev.map(l=>{
+      if(l.selected&&!l.assignee){const r={...l,assignee:a[idx%a.length]};idx++;return r;}
+      return l;
+    }));
+  };
+
+  const handleCopy = async () => {
+    const filtered = leads.filter(l=>l.selected);
+    const rows = filtered.map(l=>`${l.date}\t${l.name}\t${l.phone}\t${l.email}\t${l.interest}\t${l.status}\t${l.assignee}\t${l.note}\t${l.closeDate}`);
+    const text = rows.join("\n");
+    try { await navigator.clipboard.writeText(text); } catch { const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta); }
+    setCopyMsg(`คัดลอก ${filtered.length} รายการแล้ว`);
+    setTimeout(()=>setCopyMsg(""),5000);
+  };
+
+  const filteredLeads = leads.filter(l=>{
+    if(filter!=="ทั้งหมด"&&l.status!==filter) return false;
+    if(search&&!l.name.toLowerCase().includes(search.toLowerCase())&&!l.phone.includes(search)) return false;
+    return true;
+  });
+
+  const stats = useMemo(()=>{
+    const t=leads.length, n=leads.filter(l=>l.status==="ใหม่").length,
+      c=leads.filter(l=>l.status==="ทักแล้ว").length, b=leads.filter(l=>l.status==="นัดเรียน").length,
+      cl=leads.filter(l=>l.status==="ปิดการขาย").length, d=leads.filter(l=>l.status==="ไม่สนใจ").length;
+    return {total:t,new:n,contacted:c,booked:b,closed:cl,dead:d,revenue:cl*500,commission:cl*100};
+  },[leads]);
+
+  const allSelected = leads.length>0 && leads.every(l=>l.selected);
+
+  // Chart data
+  const pieData = STATUS_OPTS.map(s=>({name:s.value,value:stats[{ใหม่:"new",ทักแล้ว:"contacted",นัดเรียน:"booked",ปิดการขาย:"closed",ไม่สนใจ:"dead"}[s.value]]||0,color:s.color})).filter(d=>d.value>0);
+  const teamBarData = TEAM_INFO.map(m=>{const my=leads.filter(l=>l.assignee===m.name);return{name:m.name,"Lead":my.length,"ปิด":my.filter(l=>l.status==="ปิดการขาย").length};});
+  const interestData = ["อบรม CPR","เช่าอุปกรณ์","อบรมองค์กร","ดาวน์โหลดคู่มือ"].map(i=>({name:i,value:leads.filter(l=>l.interest===i).length})).filter(d=>d.value>0);
+
+  // ============ NAV ============
+  const navBtn = (key,icon,label) => <button onClick={()=>setPage(key)} style={{
+    background:page===key?B.white:"rgba(255,255,255,0.15)",color:page===key?B.red:B.white,
+    border:"none",borderRadius:"8px 8px 0 0",padding:"8px 18px",fontSize:13,fontWeight:700,cursor:"pointer"
+  }}>{icon} {label}</button>;
+
+  return <div style={{minHeight:"100vh",background:"#F5F5F5"}}>
+    {/* HEADER */}
+    <div style={{background:`linear-gradient(135deg,${B.red} 0%,${B.redDark} 100%)`,color:B.white,padding:"20px 24px 0"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+        <span style={{fontSize:30}}>🏥</span>
+        <div>
+          <h1 style={{margin:0,fontSize:22,fontWeight:800}}>JIA Lead System</h1>
+          <p style={{margin:0,fontSize:12,opacity:0.8}}>ระบบจัดการ Lead — JIA TRAINER CENTER</p>
+        </div>
+        {leads.length>0 && <div style={{marginLeft:"auto",background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"6px 14px",fontSize:12}}>
+          📊 {stats.total} Lead | 🟢 {stats.closed} ปิดขาย | 💰 ฿{stats.revenue.toLocaleString()}
+        </div>}
+      </div>
+      <div style={{display:"flex",gap:4,marginTop:10}}>
+        {navBtn("upload","📂","อัปโหลด CSV")}
+        {leads.length>0 && navBtn("system","📋","จัดการ Lead")}
+        {leads.length>0 && navBtn("dashboard","📊","Dashboard")}
+      </div>
+    </div>
+
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"20px 16px"}}>
+
+      {/* ============ UPLOAD ============ */}
+      {page==="upload" && <div
+        onDragOver={e=>{e.preventDefault();setDragActive(true);}} onDragLeave={()=>setDragActive(false)} onDrop={handleDrop}
+        onClick={()=>fileRef.current?.click()}
+        style={{border:`3px dashed ${dragActive?B.red:"#D1D5DB"}`,borderRadius:16,padding:"60px 24px",textAlign:"center",cursor:"pointer",background:dragActive?B.redLight:B.white,transition:"all 0.2s",marginTop:20}}
+      >
+        <input ref={fileRef} type="file" accept=".csv,.tsv,.txt" onChange={e=>handleFile(e.target.files?.[0])} style={{display:"none"}}/>
+        <div style={{fontSize:56,marginBottom:16}}>📂</div>
+        <h2 style={{margin:"0 0 8px",fontSize:20}}>ลากไฟล์ CSV มาวางที่นี่</h2>
+        <p style={{margin:0,color:B.gray,fontSize:14}}>หรือคลิกเพื่อเลือกไฟล์ — รองรับ CSV จาก Facebook Ads Manager</p>
+        <div style={{marginTop:24,padding:"12px 20px",background:B.redLight,borderRadius:10,display:"inline-block"}}>
+          <p style={{margin:0,fontSize:13,color:B.redDark}}>💡 <strong>วิธีโหลด CSV:</strong> Ads Manager → Lead Ads → Download Leads → CSV</p>
+        </div>
+      </div>}
+
+      {/* ============ LEAD SYSTEM ============ */}
+      {page==="system" && <>
+        {/* Stats */}
+        <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:16}}>
+          <StatCard icon="📊" label="ทั้งหมด" value={stats.total} color={B.dark} bg={B.grayLight}/>
+          <StatCard icon="🔴" label="ใหม่" value={stats.new} color={B.red} bg={B.redLight}/>
+          <StatCard icon="🟡" label="ทักแล้ว" value={stats.contacted} color={B.orange} bg={B.orangeLight}/>
+          <StatCard icon="🔵" label="นัดเรียน" value={stats.booked} color={B.blue} bg={B.blueLight}/>
+          <StatCard icon="🟢" label="ปิดการขาย" value={stats.closed} color={B.green} bg={B.greenLight}/>
+        </div>
+
+        {/* Toolbar */}
+        <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",marginBottom:12,background:B.white,padding:"12px 16px",borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+          <input type="text" placeholder="🔍 ค้นหาชื่อ/เบอร์..." value={search} onChange={e=>setSearch(e.target.value)} style={{border:"1px solid #E5E7EB",borderRadius:8,padding:"8px 12px",fontSize:13,flex:"1 1 180px",minWidth:150,outline:"none"}}/>
+          <select value={filter} onChange={e=>setFilter(e.target.value)} style={{border:"1px solid #E5E7EB",borderRadius:8,padding:"8px 12px",fontSize:13,cursor:"pointer"}}>
+            <option value="ทั้งหมด">ทุกสถานะ</option>
+            {STATUS_OPTS.map(s=><option key={s.value} value={s.value}>{s.icon} {s.value}</option>)}
+          </select>
+          <button onClick={autoAssign} style={{background:B.blueLight,color:B.blue,border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,fontWeight:600,cursor:"pointer"}}>👥 แจก Lead อัตโนมัติ</button>
+          <button onClick={handleCopy} style={{background:B.red,color:B.white,border:"none",borderRadius:8,padding:"8px 18px",fontSize:13,fontWeight:700,cursor:"pointer",marginLeft:"auto"}}>📋 คัดลอกไปวาง Sheet</button>
+          <button onClick={()=>{setPage("upload");setLeads([]);setCopyMsg("");setSearch("");setFilter("ทั้งหมด");}} style={{background:B.grayLight,color:B.gray,border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer"}}>🔄 อัปโหลดใหม่</button>
+        </div>
+
+        {/* Copy msg */}
+        {copyMsg && <div style={{background:B.greenLight,border:`1px solid ${B.green}33`,borderRadius:10,padding:"12px 18px",marginBottom:12,display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:20}}>✅</span>
+          <div>
+            <p style={{margin:0,fontWeight:700,color:B.green,fontSize:14}}>{copyMsg}</p>
+            <p style={{margin:"4px 0 0",fontSize:12,color:B.gray}}>เปิด Google Sheet → คลิกเซลล์ <strong>A4</strong> → Ctrl+V (หรือ Cmd+V) เพื่อวาง</p>
+          </div>
+        </div>}
+
+        {/* Table */}
+        <div style={{overflowX:"auto",background:B.white,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",minWidth:1000}}>
+            <thead><tr style={{background:B.dark}}>
+              <th style={{...th,width:40}}><input type="checkbox" checked={allSelected} onChange={e=>toggleAll(e.target.checked)} style={{width:16,height:16,accentColor:B.red}}/></th>
+              <th style={th}>วันที่</th><th style={th}>ชื่อ</th><th style={th}>เบอร์โทร</th><th style={th}>อีเมล</th>
+              <th style={th}>สนใจอะไร</th><th style={th}>สถานะ</th><th style={th}>ผู้รับผิดชอบ</th><th style={th}>หมายเหตุ</th><th style={th}>วันที่ปิด</th>
+            </tr></thead>
+            <tbody>{filteredLeads.map((l,i)=><LeadRow key={l.id} lead={l} index={i} onUpdate={updateLead}/>)}</tbody>
+          </table>
+          {!filteredLeads.length && <div style={{textAlign:"center",padding:"40px 20px",color:B.gray}}>ไม่พบข้อมูลที่ตรงกับเงื่อนไข</div>}
+        </div>
+
+        {/* Footer */}
+        <div style={{marginTop:16,padding:"14px 18px",background:B.white,borderRadius:10,fontSize:12,color:B.gray,lineHeight:1.8}}>
+          <strong style={{color:B.dark}}>📌 ขั้นตอน:</strong> หมวยโหลด CSV → ลากวาง Web App → ตรวจสอบ/เลือกสถานะ → กดคัดลอก → วาง Sheet A4<br/>
+          <strong style={{color:B.dark}}>📊 คอลัมน์:</strong> A:วันที่ | B:ชื่อ | C:เบอร์โทร | D:อีเมล | E:สนใจอะไร | F:สถานะ | G:ผู้รับผิดชอบ | H:หมายเหตุ | I:วันที่ปิด<br/>
+          <strong style={{color:B.dark}}>👥 กฎแจก Lead:</strong> ป่านได้สิทธิ์ 1 ชม.แรก → หลัง 1 ชม. แจกให้แก้มใส/เจ
+        </div>
+      </>}
+
+      {/* ============ DASHBOARD ============ */}
+      {page==="dashboard" && <>
+        {/* Metric Cards */}
+        <div style={{display:"flex",gap:12,flexWrap:"wrap",marginBottom:20}}>
+          <StatCard icon="📊" label="Lead ทั้งหมด" value={stats.total} color={B.dark} bg={B.grayLight}/>
+          <StatCard icon="🔴" label="รอติดตาม" value={stats.new} sub="ต้องทักภายใน 1 ชม." color={B.red} bg={B.redLight}/>
+          <StatCard icon="🟢" label="ปิดการขาย" value={stats.closed} sub={`รายได้ ฿${stats.revenue.toLocaleString()}`} color={B.green} bg={B.greenLight}/>
+          <StatCard icon="💰" label="คอมมิชชั่นรวม" value={`฿${stats.commission.toLocaleString()}`} sub="20% จากยอดขาย" color={B.red} bg={B.redLight}/>
+        </div>
+
+        {/* Charts */}
+        <div style={{display:"flex",gap:16,flexWrap:"wrap",marginBottom:20}}>
+          <div style={{background:B.white,borderRadius:14,padding:"18px 20px",flex:"1 1 300px",minWidth:280,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <h3 style={{margin:"0 0 12px",fontSize:15}}>สถานะ Lead</h3>
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart><Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={85} dataKey="value" paddingAngle={3}>
+                {pieData.map((d,i)=><Cell key={i} fill={d.color}/>)}
+              </Pie><Tooltip formatter={(v,name)=>[`${v} คน`,name]}/><Legend formatter={v=><span style={{fontSize:12}}>{v}</span>}/></PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div style={{background:B.white,borderRadius:14,padding:"18px 20px",flex:"1 1 300px",minWidth:280,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+            <h3 style={{margin:"0 0 12px",fontSize:15}}>แยกตามความสนใจ</h3>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={interestData} layout="vertical" margin={{left:10}}>
+                <XAxis type="number"/><YAxis type="category" dataKey="name" width={100} tick={{fontSize:12}}/>
+                <Tooltip/><Bar dataKey="value" fill={B.red} radius={[0,6,6,0]} name="จำนวน"/>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Funnel */}
+        <div style={{background:B.white,borderRadius:14,padding:"20px 24px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:20}}>
+          <h3 style={{margin:"0 0 16px",fontSize:15}}>🔥 Sales Funnel</h3>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+            {STATUS_OPTS.filter(s=>s.value!=="ไม่สนใจ").map((s,i,arr)=><div key={s.value} style={{display:"flex",alignItems:"center",gap:8,flex:1,minWidth:100}}>
+              <div style={{flex:1,background:s.bg,borderRadius:10,padding:"12px 14px",textAlign:"center",border:`2px solid ${s.color}30`}}>
+                <div style={{fontSize:24,fontWeight:800,color:s.color}}>{stats[{ใหม่:"new",ทักแล้ว:"contacted",นัดเรียน:"booked",ปิดการขาย:"closed"}[s.value]]||0}</div>
+                <div style={{fontSize:11,color:B.gray,marginTop:2}}>{s.value}</div>
+              </div>
+              {i<arr.length-1&&<span style={{fontSize:18,color:B.gray}}>→</span>}
+            </div>)}
+          </div>
+        </div>
+
+        {/* Team Cards */}
+        <h3 style={{margin:"0 0 12px",fontSize:16}}>👥 ผลงานทีม</h3>
+        <div style={{display:"flex",gap:14,flexWrap:"wrap",marginBottom:20}}>
+          {TEAM_INFO.map(m=><TeamCard key={m.name} member={m} leads={leads}/>)}
+        </div>
+
+        {/* Team Chart */}
+        <div style={{background:B.white,borderRadius:14,padding:"20px 24px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:20}}>
+          <h3 style={{margin:"0 0 12px",fontSize:15}}>เปรียบเทียบผลงาน</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={teamBarData}><XAxis dataKey="name" tick={{fontSize:13}}/><YAxis/>
+              <Tooltip/><Legend/><Bar dataKey="Lead" fill={B.blue} radius={[4,4,0,0]}/><Bar dataKey="ปิด" fill={B.green} radius={[4,4,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Commission note */}
+        <div style={{background:B.white,borderRadius:14,padding:"16px 20px",fontSize:13,color:B.gray,lineHeight:1.8}}>
+          <strong style={{color:B.dark}}>💰 กฎคอมมิชชั่น:</strong> คอร์ส ฿500 → คอมฯ 20% = ฿100/คน | คนปิด (ป่าน/แก้มใส/เจ): ฿90/คน | หมวย: ฿10/คนที่ทีมปิดทั้งหมด + ค่า uplead ฿50/วัน
+        </div>
+      </>}
+
+    </div>
+  </div>;
+}
+
+ReactDOM.render(<App/>, document.getElementById("root"));
+</script>
+</body>
+</html>
