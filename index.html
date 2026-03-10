@@ -13,21 +13,20 @@ body{font-family:'Sarabun','Noto Sans Thai',sans-serif;background:#F5F5F5;color:
 button,select,input{font-family:inherit}
 a{color:#2563EB;text-decoration:none}
 table{width:100%;border-collapse:collapse}
-tr:hover{background:#FEF3F3 !important}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script>
 "use strict";
-var h=React.createElement,useState=React.useState,useCallback=React.useCallback,useRef=React.useRef,useMemo=React.useMemo,Fragment=React.Fragment;
+var API="https://script.google.com/macros/s/AKfycbwi0SgyHSBPLk6De3ZZuN4eEw2bVFvuySVHPcSL0nN0ftpy8LfDrQSYLcOy2SshfBUX/exec";
+var h=React.createElement,useState=React.useState,useCallback=React.useCallback,useRef=React.useRef,useMemo=React.useMemo,useEffect=React.useEffect,Fragment=React.Fragment;
 var B={red:"#C41E24",redDark:"#9B1B20",redLight:"#FFF0F0",dark:"#1A1A1A",gray:"#6B7280",grayLight:"#F3F4F6",white:"#FFFFFF",green:"#16A34A",greenLight:"#F0FDF4",blue:"#2563EB",blueLight:"#EFF6FF",orange:"#EA580C",orangeLight:"#FFF7ED",purple:"#7C3AED"};
 var STATUS=[{v:"\u0e43\u0e2b\u0e21\u0e48",c:B.red,bg:B.redLight,i:"\ud83d\udd34"},{v:"\u0e17\u0e31\u0e01\u0e41\u0e25\u0e49\u0e27",c:B.orange,bg:B.orangeLight,i:"\ud83d\udfe1"},{v:"\u0e19\u0e31\u0e14\u0e40\u0e23\u0e35\u0e22\u0e19",c:B.blue,bg:B.blueLight,i:"\ud83d\udd35"},{v:"\u0e1b\u0e34\u0e14\u0e01\u0e32\u0e23\u0e02\u0e32\u0e22",c:B.green,bg:B.greenLight,i:"\ud83d\udfe2"},{v:"\u0e44\u0e21\u0e48\u0e2a\u0e19\u0e43\u0e08",c:B.gray,bg:B.grayLight,i:"\u26ab"}];
 var TEAM=["\u0e1b\u0e48\u0e32\u0e19","\u0e41\u0e01\u0e49\u0e21\u0e43\u0e2a","\u0e40\u0e08","\u0e2b\u0e21\u0e27\u0e22"];
 var TINFO=[{n:"\u0e1b\u0e48\u0e32\u0e19",r:"\u0e15\u0e2d\u0e1a Messenger + \u0e1b\u0e34\u0e14\u0e01\u0e32\u0e23\u0e02\u0e32\u0e22",c:B.blue},{n:"\u0e41\u0e01\u0e49\u0e21\u0e43\u0e2a",r:"\u0e23\u0e31\u0e1a Lead \u0e2b\u0e25\u0e31\u0e07 1 \u0e0a\u0e21.",c:B.purple},{n:"\u0e40\u0e08",r:"\u0e23\u0e31\u0e1a Lead \u0e2b\u0e25\u0e31\u0e07 1 \u0e0a\u0e21.",c:B.orange},{n:"\u0e2b\u0e21\u0e27\u0e22",r:"Content + \u0e2d\u0e31\u0e1b Lead",c:B.red}];
-</script>
-<script>
-"use strict";
 var IMAP={"อบรม cpr":"อบรม CPR","cpr training":"อบรม CPR","สนใจอบรม_cpr_":"อบรม CPR","สนใจอบรม":"อบรม CPR","อบรม":"อบรม CPR","คอร์ส":"อบรม CPR","เช่า":"เช่าอุปกรณ์","เช่าอุปกรณ์":"เช่าอุปกรณ์","aed":"เช่าอุปกรณ์","องค์กร":"อบรมองค์กร","บริษัท":"อบรมองค์กร","corporate":"อบรมองค์กร","on-site":"อบรมองค์กร","onsite":"อบรมองค์กร","คู่มือ":"ดาวน์โหลดคู่มือ","หนังสือ":"ดาวน์โหลดคู่มือ","download":"ดาวน์โหลดคู่มือ","cprbook":"ดาวน์โหลดคู่มือ","pdf":"ดาวน์โหลดคู่มือ","สถานที่":"เช่าสถานที่","ห้อง":"เช่าสถานที่","nl":"เตรียมสอบ","osce":"เตรียมสอบ","acls":"เตรียมสอบ","สอบ":"เตรียมสอบ"};
 var ICOL={"อบรม CPR":{bg:"#DBEAFE",t:"#1D4ED8"},"เช่าอุปกรณ์":{bg:"#FEF3C7",t:"#92400E"},"อบรมองค์กร":{bg:"#F3E8FF",t:"#7C3AED"},"ดาวน์โหลดคู่มือ":{bg:"#E0E7FF",t:"#4338CA"},"เช่าสถานที่":{bg:"#CCFBF1",t:"#0D9488"},"เตรียมสอบ":{bg:"#FCE7F3",t:"#BE185D"}};
 
@@ -39,148 +38,177 @@ function parseCSV(text){
   var lines=text.split(/\r?\n/).filter(function(l){return l.trim()});if(lines.length<2)return[];
   var sep=lines[0].indexOf("\t")>=0?"\t":",";
   var cols=lines[0].split(sep).map(function(c){return c.replace(/"/g,"").trim().toLowerCase()});
-  function fe(){var kw=Array.prototype.slice.call(arguments);var e=-1;for(var i=0;i<cols.length;i++){for(var j=0;j<kw.length;j++){if(cols[i]===kw[j]){return i}}}for(var i=0;i<cols.length;i++){for(var j=0;j<kw.length;j++){if(cols[i].indexOf(kw[j])>=0){return i}}}return-1}
-  var di=fe("created_time","created","date","วันที่");
-  var ni=-1;for(var i=0;i<cols.length;i++){if(cols[i]==="full_name"){ni=i;break}}if(ni<0)ni=fe("ชื่อ");
+  function fe(){var kw=Array.prototype.slice.call(arguments);for(var i=0;i<cols.length;i++){for(var j=0;j<kw.length;j++){if(cols[i]===kw[j])return i}}for(var i=0;i<cols.length;i++){for(var j=0;j<kw.length;j++){if(cols[i].indexOf(kw[j])>=0)return i}}return-1}
+  var di=fe("created_time","created","date"),ni=-1;for(var i=0;i<cols.length;i++){if(cols[i]==="full_name"){ni=i;break}}if(ni<0)ni=fe("ชื่อ");
   var pi=-1;for(var i=0;i<cols.length;i++){if(cols[i]==="phone"){pi=i;break}}if(pi<0)pi=fe("เบอร์","โทร");
-  var ei=fe("email","อีเมล"),ii=fe("สนใจ","interest","what","which","answer"),fni=fe("first_name"),lni=fe("last_name");
+  var ei=fe("email","อีเมล"),ii=fe("สนใจ","interest"),fni=fe("first_name"),lni=fe("last_name");
   var leads=[];
-  for(var i=1;i<lines.length;i++){
-    var v=lines[i].split(sep).map(function(x){return x.replace(/"/g,"").trim()});
-    var allEmpty=true;for(var j=0;j<v.length;j++){if(v[j]){allEmpty=false;break}}if(allEmpty)continue;
-    var name=ni>=0?v[ni]:"";
-    if(!name&&fni>=0){var parts=[];if(v[fni])parts.push(v[fni]);if(lni>=0&&v[lni])parts.push(v[lni]);name=parts.join(" ")}
-    if(!name)continue;
-    leads.push({id:"l"+i+Date.now(),date:fmtD(di>=0?v[di]:null),name:name,phone:parsePhone(pi>=0?v[pi]:""),email:ei>=0?v[ei]:"",interest:classify(ii>=0?v[ii]:""),status:"ใหม่",note:"",assignee:"",closeDate:"",selected:true});
-  }
+  for(var i=1;i<lines.length;i++){var v=lines[i].split(sep).map(function(x){return x.replace(/"/g,"").trim()});var empty=true;for(var j=0;j<v.length;j++){if(v[j]){empty=false;break}}if(empty)continue;
+    var name=ni>=0?v[ni]:"";if(!name&&fni>=0){var parts=[];if(v[fni])parts.push(v[fni]);if(lni>=0&&v[lni])parts.push(v[lni]);name=parts.join(" ")}if(!name)continue;
+    leads.push({date:fmtD(di>=0?v[di]:null),name:name,phone:parsePhone(pi>=0?v[pi]:""),email:ei>=0?v[ei]:"",interest:classify(ii>=0?v[ii]:""),status:"ใหม่",assignee:"",note:"",closeDate:""});}
   return leads;
 }
 
+// API calls
+function apiRead(cb){fetch(API+"?action=read").then(function(r){return r.json()}).then(function(d){cb(null,d)}).catch(function(e){cb(e)})}
+function apiAdd(data,cb){fetch(API+"?action=add&data="+encodeURIComponent(JSON.stringify(data))).then(function(r){return r.json()}).then(function(d){cb(null,d)}).catch(function(e){cb(e)})}
+function apiUpdate(row,col,value,cb){fetch(API+"?action=update&row="+row+"&col="+col+"&value="+encodeURIComponent(value)).then(function(r){return r.json()}).then(function(d){if(cb)cb(null,d)}).catch(function(e){if(cb)cb(e)})}
+
 function App(){
   var _leads=useState([]),leads=_leads[0],setLeads=_leads[1];
-  var _page=useState("upload"),page=_page[0],setPage=_page[1];
-  var _msg=useState(""),copyMsg=_msg[0],setCopyMsg=_msg[1];
-  var _f=useState("ทั้งหมด"),filter=_f[0],setFilter=_f[1];
-  var _s=useState(""),search=_s[0],setSearch=_s[1];
-  var _d=useState(false),drag=_d[0],setDrag=_d[1];
+  var _page=useState("leads"),page=_page[0],setPage=_page[1];
+  var _loading=useState(true),loading=_loading[0],setLoading=_loading[1];
+  var _msg=useState(""),msg=_msg[0],setMsg=_msg[1];
+  var _filter=useState("ทั้งหมด"),filter=_filter[0],setFilter=_filter[1];
+  var _search=useState(""),search=_search[0],setSearch=_search[1];
+  var _drag=useState(false),drag=_drag[0],setDrag=_drag[1];
+  var _saving=useState(""),saving=_saving[0],setSaving=_saving[1];
   var ref=useRef(null);
 
+  // Load data from Sheet on start
+  useEffect(function(){loadData()},[]);
+
+  function loadData(){
+    setLoading(true);setMsg("");
+    apiRead(function(err,data){
+      setLoading(false);
+      if(err){setMsg("โหลดข้อมูลไม่ได้: "+err);return}
+      if(data&&data.leads){setLeads(data.leads);setMsg("โหลด "+data.leads.length+" รายการจาก Google Sheet")}
+      else{setMsg("ยังไม่มีข้อมูลใน Sheet")}
+      setTimeout(function(){setMsg("")},3000);
+    });
+  }
+
+  // Upload CSV & add to Sheet
   var handleFile=useCallback(function(f){
     if(!f)return;var r=new FileReader();
-    r.onload=function(e){var p=parseCSV(e.target.result);if(!p.length){alert("ไม่พบข้อมูล Lead ในไฟล์นี้");return}setLeads(p);setPage("system")};
+    r.onload=function(e){
+      var parsed=parseCSV(e.target.result);
+      if(!parsed.length){alert("ไม่พบข้อมูล Lead");return}
+      setLoading(true);setMsg("กำลังบันทึก "+parsed.length+" รายการลง Google Sheet...");
+      apiAdd(parsed,function(err,data){
+        setLoading(false);
+        if(err){setMsg("บันทึกไม่สำเร็จ: "+err);return}
+        setMsg("บันทึก "+parsed.length+" รายการลง Google Sheet สำเร็จ!");
+        setTimeout(function(){setMsg("")},4000);
+        loadData(); // reload from sheet
+        setPage("leads");
+      });
+    };
     r.readAsText(f,"UTF-8");
   },[]);
 
-  var onDrop=useCallback(function(e){e.preventDefault();setDrag(false);if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])},[handleFile]);
+  var onDrop=useCallback(function(e){e.preventDefault();setDrag(false);if(e.dataTransfer&&e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])},[handleFile]);
 
-  function upd(id,field,value){setLeads(function(prev){return prev.map(function(l){if(l.id!==id)return l;var u=Object.assign({},l);u[field]=value;if(field==="status"&&value==="ปิดการขาย"&&!l.closeDate)u.closeDate=new Date().toLocaleDateString("th-TH",{year:"numeric",month:"short",day:"numeric"});if(field==="status"&&value!=="ปิดการขาย")u.closeDate="";return u})})}
-  function toggleAll(c){setLeads(function(p){return p.map(function(l){return Object.assign({},l,{selected:c})})})}
-  function autoAssign(){var a=["ป่าน","แก้มใส","เจ"];var idx=0;setLeads(function(p){return p.map(function(l){if(l.selected&&!l.assignee){var r=Object.assign({},l,{assignee:a[idx%a.length]});idx++;return r}return l})})}
-
-  function doCopy(){
-    var f=leads.filter(function(l){return l.selected});
-    var t=f.map(function(l){return[l.date,l.name,l.phone,l.email,l.interest,l.status,l.assignee,l.note,l.closeDate].join("\t")}).join("\n");
-    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){setCopyMsg("คัดลอก "+f.length+" รายการแล้ว");setTimeout(function(){setCopyMsg("")},5000)}).catch(function(){fallbackCopy(t,f.length)})}else{fallbackCopy(t,f.length)}
+  // Update cell in Sheet
+  function updateField(lead,col,value){
+    var row=lead.row;
+    // Update locally first
+    setLeads(function(prev){return prev.map(function(l){
+      if(l.row!==row)return l;
+      var u=Object.assign({},l);
+      if(col===6){u.status=value;if(value==="ปิดการขาย"&&!l.closeDate){u.closeDate=new Date().toLocaleDateString("th-TH",{year:"numeric",month:"short",day:"numeric"});apiUpdate(row,9,u.closeDate)}if(value!=="ปิดการขาย"){u.closeDate="";apiUpdate(row,9,"")}}
+      if(col===7)u.assignee=value;
+      if(col===8)u.note=value;
+      return u;
+    })});
+    // Save to Sheet
+    setSaving("r"+row+"c"+col);
+    apiUpdate(row,col,value,function(){setSaving("")});
   }
-  function fallbackCopy(t,n){var a=document.createElement("textarea");a.value=t;a.style.position="fixed";a.style.left="-9999px";document.body.appendChild(a);a.select();document.execCommand("copy");document.body.removeChild(a);setCopyMsg("คัดลอก "+n+" รายการแล้ว");setTimeout(function(){setCopyMsg("")},5000)}
 
   var fl=leads.filter(function(l){if(filter!=="ทั้งหมด"&&l.status!==filter)return false;if(search&&l.name.toLowerCase().indexOf(search.toLowerCase())<0&&l.phone.indexOf(search)<0)return false;return true});
-
   var st=useMemo(function(){var t=leads.length,n=0,c=0,b=0,cl=0;leads.forEach(function(l){if(l.status==="ใหม่")n++;if(l.status==="ทักแล้ว")c++;if(l.status==="นัดเรียน")b++;if(l.status==="ปิดการขาย")cl++});return{total:t,new:n,contacted:c,booked:b,closed:cl,revenue:cl*500,commission:cl*100}},[leads]);
 
-  var allSel=leads.length>0&&leads.every(function(l){return l.selected});
   var thS={padding:"12px",fontSize:12,fontWeight:700,color:"#FFF",textAlign:"left",whiteSpace:"nowrap",borderBottom:"2px solid "+B.red};
   var tdS={padding:"10px 12px",borderBottom:"1px solid #F0F0F0",fontSize:13,whiteSpace:"nowrap"};
 
   function SC(p){return h("div",{style:{background:p.bg,borderRadius:12,padding:"14px 18px",display:"flex",alignItems:"center",gap:12,border:"1px solid "+p.color+"22",flex:"1 1 140px",minWidth:140}},h("span",{style:{fontSize:28}},p.icon),h("div",null,h("div",{style:{fontSize:22,fontWeight:700,color:p.color,lineHeight:1.1}},p.value),h("div",{style:{fontSize:12,color:B.gray,marginTop:2}},p.label),p.sub?h("div",{style:{fontSize:11,color:B.gray,marginTop:2}},p.sub):null))}
 
-  function BarChart(p){var max=1;p.data.forEach(function(d){if(d.value>max)max=d.value});return h("div",{style:{background:B.white,borderRadius:14,padding:"18px 20px",flex:"1 1 300px",minWidth:280,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}},h("h3",{style:{margin:"0 0 14px",fontSize:15}},p.title),p.data.map(function(d){return h("div",{key:d.name,style:{marginBottom:8,display:"flex",alignItems:"center",gap:10}},h("div",{style:{width:110,fontSize:12,color:B.gray,textAlign:"right",flexShrink:0}},d.name),h("div",{style:{flex:1,background:"#F0F0F0",borderRadius:6,height:26,overflow:"hidden"}},h("div",{style:{width:Math.max(d.value/max*100,d.value>0?8:0)+"%",height:"100%",background:d.color||p.color||B.red,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",minWidth:d.value>0?30:0}},d.value>0?h("span",{style:{fontSize:12,fontWeight:700,color:B.white}},d.value):null)))}))}
+  function BarC(p){var max=1;p.data.forEach(function(d){if(d.value>max)max=d.value});return h("div",{style:{background:B.white,borderRadius:14,padding:"18px 20px",flex:"1 1 300px",minWidth:280,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}},h("h3",{style:{margin:"0 0 14px",fontSize:15}},p.title),p.data.map(function(d){return h("div",{key:d.name,style:{marginBottom:8,display:"flex",alignItems:"center",gap:10}},h("div",{style:{width:110,fontSize:12,color:B.gray,textAlign:"right",flexShrink:0}},d.name),h("div",{style:{flex:1,background:"#F0F0F0",borderRadius:6,height:26,overflow:"hidden"}},h("div",{style:{width:Math.max(d.value/max*100,d.value>0?8:0)+"%",height:"100%",background:d.color||p.color||B.red,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",minWidth:d.value>0?30:0}},d.value>0?h("span",{style:{fontSize:12,fontWeight:700,color:B.white}},d.value):null)))}))}
 
-  function TeamCard(m){var my=leads.filter(function(l){return l.assignee===m.n});var cl=my.filter(function(l){return l.status==="ปิดการขาย"}).length;var t=my.length;var rate=t>0?((cl/t)*100).toFixed(0):0;var comm=m.n==="หมวย"?leads.filter(function(l){return l.status==="ปิดการขาย"}).length*10:cl*90;
+  function TC(m){var my=leads.filter(function(l){return l.assignee===m.n});var cl=my.filter(function(l){return l.status==="ปิดการขาย"}).length;var t=my.length;var rate=t>0?((cl/t)*100).toFixed(0):0;var comm=m.n==="หมวย"?leads.filter(function(l){return l.status==="ปิดการขาย"}).length*10:cl*90;
     function bx(bg,val,lab,col){return h("div",{style:{background:bg,borderRadius:8,padding:"8px 10px",textAlign:"center"}},h("div",{style:{fontSize:18,fontWeight:800,color:col||B.dark}},val),h("div",{style:{fontSize:10,color:B.gray}},lab))}
     return h("div",{key:m.n,style:{background:B.white,borderRadius:14,padding:"18px 20px",border:"2px solid "+m.c+"20",flex:"1 1 200px",minWidth:200,boxShadow:"0 2px 8px rgba(0,0,0,0.04)"}},h("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:12}},h("div",{style:{width:40,height:40,borderRadius:12,background:m.c+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:800,color:m.c}},m.n[0]),h("div",null,h("div",{style:{fontWeight:700,fontSize:15}},m.n),h("div",{style:{fontSize:11,color:B.gray}},m.r))),h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},bx(B.grayLight,t,"Lead"),bx(B.greenLight,cl,"ปิดขาย",B.green),bx(B.blueLight,rate+"%","อัตราปิด",B.blue),bx(B.redLight,"฿"+comm.toLocaleString(),"คอมฯ",B.red)))}
 
-  function LeadRow(l,i){var s=STATUS[0];for(var j=0;j<STATUS.length;j++){if(STATUS[j].v===l.status){s=STATUS[j];break}}var ic=ICOL[l.interest]||{bg:"#F3F4F6",t:"#374151"};
-    return h("tr",{key:l.id,style:{background:i%2===0?B.white:"#FAFAFA"}},
-      h("td",{style:Object.assign({},tdS,{textAlign:"center",width:40})},h("input",{type:"checkbox",checked:l.selected,onChange:function(e){upd(l.id,"selected",e.target.checked)},style:{width:16,height:16,accentColor:B.red}})),
+  function LeadRow(l,i){
+    var s=STATUS[0];for(var j=0;j<STATUS.length;j++){if(STATUS[j].v===l.status){s=STATUS[j];break}}
+    var ic=ICOL[l.interest]||{bg:"#F3F4F6",t:"#374151"};
+    var isSaving=saving.indexOf("r"+l.row)===0;
+    return h("tr",{key:l.row||i,style:{background:isSaving?"#FFFDE7":i%2===0?B.white:"#FAFAFA"}},
       h("td",{style:Object.assign({},tdS,{fontSize:12,color:B.gray})},l.date),
       h("td",{style:Object.assign({},tdS,{fontWeight:600})},l.name),
       h("td",{style:Object.assign({},tdS,{fontFamily:"monospace",fontSize:13})},l.phone?h("a",{href:"tel:"+l.phone,style:{color:B.blue}},l.phone):h("span",{style:{color:"#CCC"}},"—")),
-      h("td",{style:Object.assign({},tdS,{fontSize:12,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis"})},l.email||h("span",{style:{color:"#CCC"}},"—")),
+      h("td",{style:Object.assign({},tdS,{fontSize:12,maxWidth:150,overflow:"hidden",textOverflow:"ellipsis"})},l.email||h("span",{style:{color:"#CCC"}},"—")),
       h("td",{style:tdS},h("span",{style:{display:"inline-block",padding:"3px 10px",borderRadius:20,fontSize:12,fontWeight:600,background:ic.bg,color:ic.t}},l.interest)),
-      h("td",{style:tdS},h("select",{value:l.status,onChange:function(e){upd(l.id,"status",e.target.value)},style:{border:"none",background:s.bg,color:s.c,fontWeight:700,fontSize:12,padding:"4px 8px",borderRadius:8,cursor:"pointer",outline:"none"}},STATUS.map(function(x){return h("option",{key:x.v,value:x.v},x.i+" "+x.v)}))),
-      h("td",{style:tdS},h("select",{value:l.assignee,onChange:function(e){upd(l.id,"assignee",e.target.value)},style:{border:"1px solid #E5E7EB",background:B.white,fontSize:12,padding:"4px 6px",borderRadius:6,cursor:"pointer",width:70}},h("option",{value:""},"—"),TEAM.map(function(m){return h("option",{key:m,value:m},m)}))),
-      h("td",{style:tdS},h("input",{type:"text",value:l.note,onChange:function(e){upd(l.id,"note",e.target.value)},placeholder:"บันทึก...",style:{border:"1px solid #E5E7EB",borderRadius:6,padding:"4px 8px",fontSize:12,width:"100%",minWidth:80,outline:"none"}})),
-      h("td",{style:Object.assign({},tdS,{fontSize:12,color:l.closeDate?B.green:"#CCC"})},l.closeDate||"—"))}
+      h("td",{style:tdS},h("select",{value:l.status,onChange:function(e){updateField(l,6,e.target.value)},style:{border:"none",background:s.bg,color:s.c,fontWeight:700,fontSize:12,padding:"4px 8px",borderRadius:8,cursor:"pointer",outline:"none"}},STATUS.map(function(x){return h("option",{key:x.v,value:x.v},x.i+" "+x.v)}))),
+      h("td",{style:tdS},h("select",{value:l.assignee,onChange:function(e){updateField(l,7,e.target.value)},style:{border:"1px solid #E5E7EB",background:B.white,fontSize:12,padding:"4px 6px",borderRadius:6,cursor:"pointer",width:70}},h("option",{value:""},"—"),TEAM.map(function(m){return h("option",{key:m,value:m},m)}))),
+      h("td",{style:tdS},h("input",{type:"text",value:l.note,onBlur:function(e){updateField(l,8,e.target.value)},onChange:function(e){var v=e.target.value;setLeads(function(prev){return prev.map(function(x){return x.row===l.row?Object.assign({},x,{note:v}):x})})},placeholder:"บันทึก...",style:{border:"1px solid #E5E7EB",borderRadius:6,padding:"4px 8px",fontSize:12,width:"100%",minWidth:80,outline:"none"}})),
+      h("td",{style:Object.assign({},tdS,{fontSize:12,color:l.closeDate?B.green:"#CCC"})},l.closeDate||"—")
+    )}
 
-  function navBtn(k,ic,lb){return h("button",{onClick:function(){setPage(k)},style:{background:page===k?B.white:"rgba(255,255,255,0.15)",color:page===k?B.red:B.white,border:"none",borderRadius:"8px 8px 0 0",padding:"8px 18px",fontSize:13,fontWeight:700,cursor:"pointer"}},ic+" "+lb)}
+  function nb(k,ic,lb){return h("button",{onClick:function(){setPage(k)},style:{background:page===k?B.white:"rgba(255,255,255,0.15)",color:page===k?B.red:B.white,border:"none",borderRadius:"8px 8px 0 0",padding:"8px 18px",fontSize:13,fontWeight:700,cursor:"pointer"}},ic+" "+lb)}
 
   var statusData=STATUS.map(function(s){return{name:s.v,value:leads.filter(function(l){return l.status===s.v}).length,color:s.c}}).filter(function(d){return d.value>0});
-  var intTypes=["อบรม CPR","เช่าอุปกรณ์","อบรมองค์กร","ดาวน์โหลดคู่มือ","เช่าสถานที่","เตรียมสอบ"];
-  var intData=intTypes.map(function(i){return{name:i,value:leads.filter(function(l){return l.interest===i}).length}}).filter(function(d){return d.value>0});
+  var intData=["อบรม CPR","เช่าอุปกรณ์","อบรมองค์กร","ดาวน์โหลดคู่มือ","เช่าสถานที่","เตรียมสอบ"].map(function(i){return{name:i,value:leads.filter(function(l){return l.interest===i}).length}}).filter(function(d){return d.value>0});
 
   return h("div",{style:{minHeight:"100vh",background:"#F5F5F5"}},
     // Header
     h("div",{style:{background:"linear-gradient(135deg,"+B.red+","+B.redDark+")",color:B.white,padding:"20px 24px 0"}},
       h("div",{style:{display:"flex",alignItems:"center",gap:12,marginBottom:8,flexWrap:"wrap"}},
         h("span",{style:{fontSize:30}},"🏥"),
-        h("div",null,h("h1",{style:{margin:0,fontSize:22,fontWeight:800}},"JIA Lead System"),h("p",{style:{margin:0,fontSize:12,opacity:0.8}},"ระบบจัดการ Lead — JIA TRAINER CENTER")),
-        leads.length>0?h("div",{style:{marginLeft:"auto",background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"6px 14px",fontSize:12}},"📊 "+st.total+" Lead | 🟢 "+st.closed+" ปิดขาย | 💰 ฿"+st.revenue.toLocaleString()):null),
+        h("div",null,h("h1",{style:{margin:0,fontSize:22,fontWeight:800}},"JIA Lead System"),h("p",{style:{margin:0,fontSize:12,opacity:0.8}},"เชื่อมต่อ Google Sheet อัตโนมัติ")),
+        h("div",{style:{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}},
+          h("div",{style:{background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"6px 14px",fontSize:12}},"📊 "+st.total+" Lead | 🟢 "+st.closed+" ปิดขาย | 💰 ฿"+st.revenue.toLocaleString()),
+          h("button",{onClick:loadData,style:{background:"rgba(255,255,255,0.2)",color:B.white,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer"}},loading?"⏳":"🔄 รีเฟรช"))),
       h("div",{style:{display:"flex",gap:4,marginTop:10}},
-        navBtn("upload","📂","อัปโหลด CSV"),
-        leads.length>0?navBtn("system","📋","จัดการ Lead"):null,
-        leads.length>0?navBtn("dashboard","📊","Dashboard"):null)),
+        nb("leads","📋","จัดการ Lead"),nb("upload","📂","อัปโหลด CSV"),nb("dashboard","📊","Dashboard"))),
 
-    h("div",{style:{maxWidth:1200,margin:"0 auto",padding:"20px 16px"}},
+    // Message bar
+    msg?h("div",{style:{background:msg.indexOf("สำเร็จ")>=0||msg.indexOf("โหลด")>=0?B.greenLight:B.orangeLight,padding:"10px 24px",fontSize:13,fontWeight:600,color:msg.indexOf("สำเร็จ")>=0||msg.indexOf("โหลด")>=0?B.green:B.orange,textAlign:"center"}},msg):null,
+    loading?h("div",{style:{textAlign:"center",padding:"60px 20px"}},h("div",{style:{fontSize:40,marginBottom:12}},"⏳"),h("p",{style:{color:B.gray}},"กำลังโหลดข้อมูลจาก Google Sheet...")):null,
 
-      // Upload
-      page==="upload"?h("div",{onDragOver:function(e){e.preventDefault();setDrag(true)},onDragLeave:function(){setDrag(false)},onDrop:onDrop,onClick:function(){ref.current&&ref.current.click()},style:{border:"3px dashed "+(drag?B.red:"#D1D5DB"),borderRadius:16,padding:"60px 24px",textAlign:"center",cursor:"pointer",background:drag?B.redLight:B.white,transition:"all 0.2s",marginTop:20}},
+    !loading?h("div",{style:{maxWidth:1200,margin:"0 auto",padding:"20px 16px"}},
+
+      // Upload CSV
+      page==="upload"?h("div",{onDragOver:function(e){e.preventDefault();setDrag(true)},onDragLeave:function(){setDrag(false)},onDrop:onDrop,onClick:function(){ref.current&&ref.current.click()},style:{border:"3px dashed "+(drag?B.red:"#D1D5DB"),borderRadius:16,padding:"60px 24px",textAlign:"center",cursor:"pointer",background:drag?B.redLight:B.white,marginTop:20}},
         h("input",{ref:ref,type:"file",accept:".csv,.tsv,.txt",onChange:function(e){if(e.target.files&&e.target.files[0])handleFile(e.target.files[0])},style:{display:"none"}}),
         h("div",{style:{fontSize:56,marginBottom:16}},"📂"),
         h("h2",{style:{margin:"0 0 8px",fontSize:20}},"ลากไฟล์ CSV มาวางที่นี่"),
-        h("p",{style:{margin:0,color:B.gray,fontSize:14}},"หรือคลิกเพื่อเลือกไฟล์ — รองรับ CSV จาก Facebook Ads Manager"),
-        h("div",{style:{marginTop:24,padding:"12px 20px",background:B.redLight,borderRadius:10,display:"inline-block"}},h("p",{style:{margin:0,fontSize:13,color:B.redDark}},"💡 วิธีโหลด CSV: Ads Manager → Lead Ads → Download Leads → CSV"))):null,
+        h("p",{style:{margin:0,color:B.gray,fontSize:14}},"ข้อมูลจะบันทึกลง Google Sheet อัตโนมัติ"),
+        h("div",{style:{marginTop:24,padding:"12px 20px",background:B.redLight,borderRadius:10,display:"inline-block"}},h("p",{style:{margin:0,fontSize:13,color:B.redDark}},"💡 ลาก CSV → บันทึกลง Sheet ทันที → ไม่ต้อง copy-paste อีกต่อไป!"))):null,
 
-      // System
-      page==="system"?h(Fragment,null,
+      // Leads Management
+      page==="leads"?h(Fragment,null,
         h("div",{style:{display:"flex",gap:10,flexWrap:"wrap",marginBottom:16}},SC({icon:"📊",label:"ทั้งหมด",value:st.total,color:B.dark,bg:B.grayLight}),SC({icon:"🔴",label:"ใหม่",value:st.new,color:B.red,bg:B.redLight}),SC({icon:"🟡",label:"ทักแล้ว",value:st.contacted,color:B.orange,bg:B.orangeLight}),SC({icon:"🔵",label:"นัดเรียน",value:st.booked,color:B.blue,bg:B.blueLight}),SC({icon:"🟢",label:"ปิดการขาย",value:st.closed,color:B.green,bg:B.greenLight})),
-        // Toolbar
         h("div",{style:{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap",marginBottom:12,background:B.white,padding:"12px 16px",borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}},
           h("input",{type:"text",placeholder:"🔍 ค้นหาชื่อ/เบอร์...",value:search,onChange:function(e){setSearch(e.target.value)},style:{border:"1px solid #E5E7EB",borderRadius:8,padding:"8px 12px",fontSize:13,flex:"1 1 180px",minWidth:150,outline:"none"}}),
           h("select",{value:filter,onChange:function(e){setFilter(e.target.value)},style:{border:"1px solid #E5E7EB",borderRadius:8,padding:"8px 12px",fontSize:13,cursor:"pointer"}},h("option",{value:"ทั้งหมด"},"ทุกสถานะ"),STATUS.map(function(s){return h("option",{key:s.v,value:s.v},s.i+" "+s.v)})),
-          h("button",{onClick:autoAssign,style:{background:B.blueLight,color:B.blue,border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,fontWeight:600,cursor:"pointer"}},"👥 แจก Lead"),
-          h("button",{onClick:doCopy,style:{background:B.red,color:B.white,border:"none",borderRadius:8,padding:"8px 18px",fontSize:13,fontWeight:700,cursor:"pointer",marginLeft:"auto"}},"📋 คัดลอกไปวาง Sheet"),
-          h("button",{onClick:function(){setPage("upload");setLeads([]);setCopyMsg("");setSearch("");setFilter("ทั้งหมด")},style:{background:B.grayLight,color:B.gray,border:"none",borderRadius:8,padding:"8px 14px",fontSize:13,cursor:"pointer"}},"🔄 ใหม่")),
-        // Copy msg
-        copyMsg?h("div",{style:{background:B.greenLight,border:"1px solid "+B.green+"33",borderRadius:10,padding:"12px 18px",marginBottom:12,display:"flex",alignItems:"center",gap:10}},h("span",{style:{fontSize:20}},"✅"),h("div",null,h("p",{style:{margin:0,fontWeight:700,color:B.green,fontSize:14}},copyMsg),h("p",{style:{margin:"4px 0 0",fontSize:12,color:B.gray}},"เปิด Google Sheet → คลิกเซลล์ A4 → Ctrl+V เพื่อวาง"))):null,
-        // Table
+          h("div",{style:{marginLeft:"auto",fontSize:12,color:B.gray}},saving?"💾 กำลังบันทึก...":"✅ เชื่อมต่อ Google Sheet")),
         h("div",{style:{overflowX:"auto",background:B.white,borderRadius:12,boxShadow:"0 1px 3px rgba(0,0,0,0.06)"}},
-          h("table",{style:{minWidth:1000}},
+          h("table",{style:{minWidth:950}},
             h("thead",null,h("tr",{style:{background:B.dark}},
-              h("th",{style:Object.assign({},thS,{width:40})},h("input",{type:"checkbox",checked:allSel,onChange:function(e){toggleAll(e.target.checked)},style:{width:16,height:16,accentColor:B.red}})),
               ["วันที่","ชื่อ","เบอร์โทร","อีเมล","สนใจอะไร","สถานะ","ผู้รับผิดชอบ","หมายเหตุ","วันที่ปิด"].map(function(x){return h("th",{key:x,style:thS},x)}))),
             h("tbody",null,fl.map(function(l,i){return LeadRow(l,i)}))),
           fl.length===0?h("div",{style:{textAlign:"center",padding:"40px 20px",color:B.gray}},"ไม่พบข้อมูล"):null),
         h("div",{style:{marginTop:16,padding:"14px 18px",background:B.white,borderRadius:10,fontSize:12,color:B.gray,lineHeight:1.8}},
-          h("strong",{style:{color:B.dark}},"📌 ขั้นตอน:")," หมวยโหลด CSV → ลากวาง → ตรวจสอบ → กดคัดลอก → วาง Sheet A4",h("br"),
+          h("strong",{style:{color:B.dark}},"✨ เว็บนี้เชื่อมกับ Google Sheet โดยตรง:")," เปลี่ยนสถานะ/ผู้รับผิดชอบ/หมายเหตุ → บันทึกลง Sheet ทันที | ลาก CSV ใหม่ → เพิ่มข้อมูลเข้า Sheet อัตโนมัติ",h("br"),
           h("strong",{style:{color:B.dark}},"👥 กฎแจก Lead:")," ป่านสิทธิ์ 1 ชม.แรก → หลัง 1 ชม. แจกแก้มใส/เจ")):null,
 
       // Dashboard
       page==="dashboard"?h(Fragment,null,
         h("div",{style:{display:"flex",gap:12,flexWrap:"wrap",marginBottom:20}},SC({icon:"📊",label:"Lead ทั้งหมด",value:st.total,color:B.dark,bg:B.grayLight}),SC({icon:"🔴",label:"รอติดตาม",value:st.new,sub:"ทักภายใน 1 ชม.",color:B.red,bg:B.redLight}),SC({icon:"🟢",label:"ปิดการขาย",value:st.closed,sub:"รายได้ ฿"+st.revenue.toLocaleString(),color:B.green,bg:B.greenLight}),SC({icon:"💰",label:"คอมมิชชั่น",value:"฿"+st.commission.toLocaleString(),sub:"20% จากยอดขาย",color:B.red,bg:B.redLight})),
-        h("div",{style:{display:"flex",gap:16,flexWrap:"wrap",marginBottom:20}},BarChart({title:"สถานะ Lead",data:statusData}),BarChart({title:"แยกตามความสนใจ",data:intData,color:B.blue})),
-        // Funnel
+        h("div",{style:{display:"flex",gap:16,flexWrap:"wrap",marginBottom:20}},BarC({title:"สถานะ Lead",data:statusData}),BarC({title:"แยกตามความสนใจ",data:intData,color:B.blue})),
         h("div",{style:{background:B.white,borderRadius:14,padding:"20px 24px",boxShadow:"0 1px 4px rgba(0,0,0,0.05)",marginBottom:20}},
           h("h3",{style:{margin:"0 0 16px",fontSize:15}},"🔥 Sales Funnel"),
           h("div",{style:{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}},
             STATUS.filter(function(s){return s.v!=="ไม่สนใจ"}).map(function(s,i,arr){
               var items=[h("div",{key:s.v,style:{flex:1,minWidth:100,background:s.bg,borderRadius:10,padding:"12px 14px",textAlign:"center",border:"2px solid "+s.c+"30"}},h("div",{style:{fontSize:24,fontWeight:800,color:s.c}},leads.filter(function(l){return l.status===s.v}).length),h("div",{style:{fontSize:11,color:B.gray,marginTop:2}},s.v))];
-              if(i<arr.length-1)items.push(h("span",{key:s.v+"a",style:{fontSize:18,color:B.gray}},"→"));
-              return items;
-            }))),
+              if(i<arr.length-1)items.push(h("span",{key:s.v+"a",style:{fontSize:18,color:B.gray}},"→"));return items}))),
         h("h3",{style:{margin:"0 0 12px",fontSize:16}},"👥 ผลงานทีม"),
-        h("div",{style:{display:"flex",gap:14,flexWrap:"wrap",marginBottom:20}},TINFO.map(function(m){return TeamCard(m)})),
-        h("div",{style:{background:B.white,borderRadius:14,padding:"16px 20px",fontSize:13,color:B.gray,lineHeight:1.8}},h("strong",{style:{color:B.dark}},"💰 กฎคอมมิชชั่น:")," คอร์ส ฿500 → คอมฯ 20% = ฿100/คน | คนปิด: ฿90 | หมวย: ฿10/คน + uplead ฿50/วัน")):null));
+        h("div",{style:{display:"flex",gap:14,flexWrap:"wrap",marginBottom:20}},TINFO.map(function(m){return TC(m)})),
+        h("div",{style:{background:B.white,borderRadius:14,padding:"16px 20px",fontSize:13,color:B.gray,lineHeight:1.8}},h("strong",{style:{color:B.dark}},"💰 กฎคอมมิชชั่น:")," คอร์ส ฿500 → คอมฯ 20% = ฿100/คน | คนปิด: ฿90 | หมวย: ฿10/คน + uplead ฿50/วัน")):null
+    ):null);
 }
 
 ReactDOM.render(h(App),document.getElementById("root"));
