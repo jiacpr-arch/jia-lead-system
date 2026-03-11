@@ -53,7 +53,19 @@ function parseCSV(text){
 var _jsonpId=0;
 function jsonp(url,cb){var id="_jp"+(_jsonpId++);window[id]=function(d){delete window[id];var s=document.getElementById(id);if(s)s.remove();cb(null,d)};var s=document.createElement("script");s.id=id;s.src=url+"&callback="+id;s.onerror=function(){delete window[id];s.remove();cb(new Error("Network error"))};document.body.appendChild(s)}
 function apiRead(cb){jsonp(API+"?action=read",cb)}
-function apiAdd(data,cb){jsonp(API+"?action=add&data="+encodeURIComponent(JSON.stringify(data)),cb)}
+function apiAdd(data,cb){
+  var BATCH=5;var total=data.length;var done=0;var errors=[];
+  function sendBatch(i){
+    if(i>=total){cb(errors.length?errors[0]:{success:true,added:total});return}
+    var chunk=data.slice(i,Math.min(i+BATCH,total));
+    jsonp(API+"?action=add&data="+encodeURIComponent(JSON.stringify(chunk)),function(err,d){
+      if(err)errors.push(err);
+      done+=chunk.length;
+      sendBatch(i+BATCH);
+    });
+  }
+  sendBatch(0);
+}
 function apiUpdate(row,col,value,cb){jsonp(API+"?action=update&row="+row+"&col="+col+"&value="+encodeURIComponent(value),cb)}
 
 function App(){
