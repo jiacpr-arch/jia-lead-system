@@ -50,9 +50,11 @@ function parseCSV(text){
 }
 
 // API calls
-function apiRead(cb){fetch(API+"?action=read").then(function(r){return r.json()}).then(function(d){cb(null,d)}).catch(function(e){cb(e)})}
-function apiAdd(data,cb){fetch(API+"?action=add&data="+encodeURIComponent(JSON.stringify(data))).then(function(r){return r.json()}).then(function(d){cb(null,d)}).catch(function(e){cb(e)})}
-function apiUpdate(row,col,value,cb){fetch(API+"?action=update&row="+row+"&col="+col+"&value="+encodeURIComponent(value)).then(function(r){return r.json()}).then(function(d){if(cb)cb(null,d)}).catch(function(e){if(cb)cb(e)})}
+var _jsonpId=0;
+function jsonp(url,cb){var id="_jp"+(_jsonpId++);window[id]=function(d){delete window[id];var s=document.getElementById(id);if(s)s.remove();cb(null,d)};var s=document.createElement("script");s.id=id;s.src=url+"&callback="+id;s.onerror=function(){delete window[id];s.remove();cb(new Error("Network error"))};document.body.appendChild(s)}
+function apiRead(cb){jsonp(API+"?action=read",cb)}
+function apiAdd(data,cb){jsonp(API+"?action=add&data="+encodeURIComponent(JSON.stringify(data)),cb)}
+function apiUpdate(row,col,value,cb){jsonp(API+"?action=update&row="+row+"&col="+col+"&value="+encodeURIComponent(value),cb)}
 
 function App(){
   var _leads=useState([]),leads=_leads[0],setLeads=_leads[1];
