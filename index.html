@@ -116,10 +116,8 @@ function App(){
               }
             }catch(e){}
           }
-          // Fix short date with wrong year (e.g. "11 มี.ค. 3112")
-          if(d.indexOf("31")===d.length-4){
-            d=d.replace(/31\d\d$/,function(y){return String(parseInt(y)-543)});
-          }
+          // Fix year 3xxx -> subtract 543 to get correct Buddhist era
+          d=d.replace(/3\d{3}/g,function(y){var n=parseInt(y);return n>3000?String(n-543):y});
           // Fix phone missing leading 0
           var p=l.phone?l.phone.toString():"";
           if(p&&p.length===9&&p[0]!=="0")p="0"+p;
