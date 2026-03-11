@@ -102,22 +102,21 @@ function App(){
         var thMonths=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
         var fixed=data.leads.map(function(l){
           var d=l.date||"";
-          // Fix long date string from Sheet
-          if(d.length>15){
-            try{
-              var dt=new Date(d);
-              if(!isNaN(dt.getTime())){
-                var day=dt.getDate();
-                var mon=thMonths[dt.getMonth()];
-                var yr=dt.getFullYear();
-                // If year > 2500 it's already Buddhist era, don't add 543
-                if(yr<2500) yr=yr+543;
-                d=day+" "+mon+" "+yr;
-              }
-            }catch(e){}
-          }
-          // Fix year 3xxx -> subtract 543 to get correct Buddhist era
-          d=d.replace(/3\d{3}/g,function(y){var n=parseInt(y);return n>3000?String(n-543):y});
+          // Parse any date format and show as "11 มี.ค. 69"
+          try{
+            var dt=new Date(d);
+            if(!isNaN(dt.getTime())){
+              var day=dt.getDate();
+              var mon=thMonths[dt.getMonth()];
+              var yr=dt.getFullYear();
+              if(yr>2500) yr=yr-543; // Already Buddhist era, convert back to CE
+              var beYear=yr+543;
+              var shortYear=String(beYear).slice(-2);
+              d=day+" "+mon+" "+shortYear;
+            }
+          }catch(e){}
+          // If still has year 3xxx, just show day+month
+          d=d.replace(/3\d{3}/g,function(y){return String(parseInt(y)-543).slice(-2)});
           // Fix phone missing leading 0
           var p=l.phone?l.phone.toString():"";
           if(p&&p.length===9&&p[0]!=="0")p="0"+p;
@@ -213,7 +212,7 @@ function App(){
           h("div",{style:{background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"6px 14px",fontSize:12}},"📊 "+st.total+" Lead | 🟢 "+st.closed+" ปิดขาย | 💰 ฿"+st.revenue.toLocaleString()),
           h("button",{onClick:loadData,style:{background:"rgba(255,255,255,0.2)",color:B.white,border:"none",borderRadius:8,padding:"6px 12px",fontSize:12,cursor:"pointer"}},loading?"⏳":"🔄 รีเฟรช"))),
       h("div",{style:{display:"flex",gap:4,marginTop:10}},
-        nb("leads","📋","จัดการ Lead"),nb("upload","📂","อัปโหลด CSV"),nb("dashboard","📊","Dashboard"))),
+        nb("leads","📋","จัดการ Lead"),nb("upload","📂","อัปโหลด CSV"),nb("dashboard","📊","Dashboard"),nb("guide","📖","คู่มือตาม Lead"))),
 
     // Message bar
     msg?h("div",{style:{background:msg.indexOf("สำเร็จ")>=0||msg.indexOf("โหลด")>=0?B.greenLight:B.orangeLight,padding:"10px 24px",fontSize:13,fontWeight:600,color:msg.indexOf("สำเร็จ")>=0||msg.indexOf("โหลด")>=0?B.green:B.orange,textAlign:"center"}},msg):null,
@@ -258,7 +257,98 @@ function App(){
               if(i<arr.length-1)items.push(h("span",{key:s.v+"a",style:{fontSize:18,color:B.gray}},"→"));return items}))),
         h("h3",{style:{margin:"0 0 12px",fontSize:16}},"👥 ผลงานทีม"),
         h("div",{style:{display:"flex",gap:14,flexWrap:"wrap",marginBottom:20}},TINFO.map(function(m){return TC(m)})),
-        h("div",{style:{background:B.white,borderRadius:14,padding:"16px 20px",fontSize:13,color:B.gray,lineHeight:1.8}},h("strong",{style:{color:B.dark}},"💰 กฎคอมมิชชั่น:")," คอร์ส ฿500 → คอมฯ 20% = ฿100/คน | คนปิด: ฿90 | หมวย: ฿10/คน + uplead ฿50/วัน")):null
+        h("div",{style:{background:B.white,borderRadius:14,padding:"16px 20px",fontSize:13,color:B.gray,lineHeight:1.8}},h("strong",{style:{color:B.dark}},"💰 กฎคอมมิชชั่น:")," คอร์ส ฿500 → คอมฯ 20% = ฿100/คน | คนปิด: ฿90 | หมวย: ฿10/คน + uplead ฿50/วัน")):null,
+
+      // Guide
+      page==="guide"?h(Fragment,null,
+        h("div",{style:{background:B.white,borderRadius:14,padding:"24px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}},
+          h("h2",{style:{margin:"0 0 16px",fontSize:24,color:B.red}},"คู่มือตาม Lead ฉบับสมบูรณ์"),
+          h("p",{style:{margin:"0 0 20px",fontSize:14,color:B.gray}},"Script สำหรับทีมขาย — โทร + LINE ตามประเภท Lead")
+        ),
+
+        // Section 1: อบรม CPR
+        h("div",{style:{background:B.white,borderRadius:14,padding:"24px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}},
+          h("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:16}},
+            h("div",{style:{background:B.blueLight,borderRadius:10,padding:"8px 14px"}},h("span",{style:{fontSize:14,fontWeight:700,color:B.blue}},"อบรม CPR")),
+            h("span",{style:{fontSize:14,color:B.gray}},"Lead ที่สนใจเรียน — ปิดได้ง่ายที่สุด")
+          ),
+          h("div",{style:{background:"#FAFAFA",borderRadius:10,padding:"16px",marginBottom:12,borderLeft:"4px solid "+B.red}},
+            h("p",{style:{margin:"0 0 4px",fontSize:13,fontWeight:700,color:B.red}},"โทรครั้งแรก (ภายใน 1 ชม.)"),
+            h("p",{style:{margin:0,fontSize:13,color:B.dark,lineHeight:1.8}},'"สวัสดีค่ะคุณ [ชื่อ] โทรจาก JIA Trainer Center ค่ะ เห็นว่าสนใจอบรม CPR อยู่ค่ะ สะดวกคุยสักครู่ไหมคะ?"'),
+            h("p",{style:{margin:"8px 0 0",fontSize:12,color:B.gray,lineHeight:1.8}},"ถามต่อ: สนใจเรียนเอง หรือพาเพื่อน/ครอบครัวมาด้วย? | รอบถัดไปวันที่ [X] เหลือ [X] ที่ | ค่าอบรม 500 บาท รวมอุปกรณ์ ใบ Certificate")
+          ),
+          h("div",{style:{background:"#FAFAFA",borderRadius:10,padding:"16px",marginBottom:12,borderLeft:"4px solid "+B.orange}},
+            h("p",{style:{margin:"0 0 4px",fontSize:13,fontWeight:700,color:B.orange}},"LINE ตามครั้งที่ 2 (24 ชม. หลังโทร)"),
+            h("p",{style:{margin:0,fontSize:13,color:B.dark,lineHeight:1.8}},'"สวัสดีค่ะคุณ [ชื่อ] ขอฝากข้อมูลไว้นะคะ รอบเรียนใกล้ๆ นี้วันที่ [X] ค่ะ รับได้จำกัด ถ้าสนใจทักมาได้เลยนะคะ"')
+          ),
+          h("div",{style:{background:"#FAFAFA",borderRadius:10,padding:"16px",borderLeft:"4px solid "+B.green}},
+            h("p",{style:{margin:"0 0 4px",fontSize:13,fontWeight:700,color:B.green}},"LINE ตามครั้งที่ 3 (วันที่ 3-5)"),
+            h("p",{style:{margin:0,fontSize:13,color:B.dark,lineHeight:1.8}},'"สวัสดีค่ะ แจ้งให้ทราบว่ามีโปรโมชั่นพิเศษเดือนนี้ค่ะ [โปร] หมดเขต [วันที่] นะคะ"')
+          )
+        ),
+
+        // Section 2: ดาวน์โหลดคู่มือ
+        h("div",{style:{background:B.white,borderRadius:14,padding:"24px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}},
+          h("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:16}},
+            h("div",{style:{background:"#E0E7FF",borderRadius:10,padding:"8px 14px"}},h("span",{style:{fontSize:14,fontWeight:700,color:"#4338CA"}},"ดาวน์โหลดคู่มือ")),
+            h("span",{style:{fontSize:14,color:B.gray}},"สนใจแต่ยังไม่พร้อมซื้อ — ต้องใช้วิธีนุ่ม")
+          ),
+          h("div",{style:{background:"#FAFAFA",borderRadius:10,padding:"16px",marginBottom:12,borderLeft:"4px solid "+B.red}},
+            h("p",{style:{margin:"0 0 4px",fontSize:13,fontWeight:700,color:B.red}},"โทรครั้งแรก (ภายใน 1 ชม.)"),
+            h("p",{style:{margin:0,fontSize:13,color:B.dark,lineHeight:1.8}},'"สวัสดีค่ะคุณ [ชื่อ] โทรจาก JIA Trainer Center ค่ะ เห็นว่าโหลดคู่มือ CPR ไปแล้ว อ่านได้สะดวกไหมคะ? ถ้ามีคำถามสอบถามได้เลยนะคะ"'),
+            h("p",{style:{margin:"8px 0 0",fontSize:12,color:B.gray}},"ถ้าตอบรับ: ถ้าสนใจฝึกปฏิบัติจริงกับหุ่นจำลอง ทาง JIA มีคอร์สอบรม แค่ 500 บาท ได้ Certificate ด้วยค่ะ"),
+            h("p",{style:{margin:"4px 0 0",fontSize:12,color:B.gray}},"ถ้าไม่รับสาย: ส่ง LINE แทน ชวนแอดเพื่อน @jiacpr")
+          ),
+          h("div",{style:{background:"#FAFAFA",borderRadius:10,padding:"16px",marginBottom:12,borderLeft:"4px solid "+B.blue}},
+            h("p",{style:{margin:"0 0 4px",fontSize:13,fontWeight:700,color:B.blue}},"LINE วันที่ 1 (หลังโหลดคู่มือ)"),
+            h("p",{style:{margin:0,fontSize:13,color:B.dark,lineHeight:1.8}},'"สวัสดีค่ะ ขอบคุณที่โหลดคู่มือ CPR นะคะ ส่งวิดีโอสอน CPR ฉบับเต็มให้ดูเพิ่มเติมค่ะ [ลิงก์วิดีโอ]"')
+          ),
+          h("div",{style:{background:"#FAFAFA",borderRadius:10,padding:"16px",marginBottom:12,borderLeft:"4px solid "+B.orange}},
+            h("p",{style:{margin:"0 0 4px",fontSize:13,fontWeight:700,color:B.orange}},"LINE วันที่ 3"),
+            h("p",{style:{margin:0,fontSize:13,color:B.dark,lineHeight:1.8}},'"คุณ [ชื่อ] คะ รู้ไหมว่า 70% ของคนหัวใจหยุดเต้น เกิดที่บ้าน ถ้าคนในครอบครัวทำ CPR ได้ โอกาสรอดเพิ่มขึ้น 2-3 เท่าเลยค่ะ อยากฝึกจริง ทักมาได้เลยนะคะ"')
+          ),
+          h("div",{style:{background:"#FAFAFA",borderRadius:10,padding:"16px",borderLeft:"4px solid "+B.green}},
+            h("p",{style:{margin:"0 0 4px",fontSize:13,fontWeight:700,color:B.green}},"LINE วันที่ 7"),
+            h("p",{style:{margin:0,fontSize:13,color:B.dark,lineHeight:1.8}},'"สวัสดีค่ะ รอบอบรมถัดไปวันที่ [X] ค่ะ เหลือไม่กี่ที่แล้ว สนใจจองทักมาได้เลยนะคะ แค่ 500 บาท รวมทุกอย่างค่ะ"')
+          )
+        ),
+
+        // Section 3: เช่าอุปกรณ์ / อบรมองค์กร
+        h("div",{style:{background:B.white,borderRadius:14,padding:"24px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}},
+          h("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:16}},
+            h("div",{style:{background:"#FEF3C7",borderRadius:10,padding:"8px 14px"}},h("span",{style:{fontSize:14,fontWeight:700,color:"#92400E"}},"เช่าอุปกรณ์ / อบรมองค์กร")),
+            h("span",{style:{fontSize:14,color:B.gray}},"B2B Lead — มูลค่าสูง ต้องดูแลพิเศษ")
+          ),
+          h("div",{style:{background:"#FAFAFA",borderRadius:10,padding:"16px",marginBottom:12,borderLeft:"4px solid "+B.red}},
+            h("p",{style:{margin:"0 0 4px",fontSize:13,fontWeight:700,color:B.red}},"โทรทันที (ภายใน 30 นาที)"),
+            h("p",{style:{margin:0,fontSize:13,color:B.dark,lineHeight:1.8}},'"สวัสดีครับ/ค่ะ โทรจาก JIA Trainer Center ครับ เห็นว่าสนใจ [เช่าอุปกรณ์/จัดอบรมองค์กร] ครับ ขอทราบรายละเอียดเพิ่มเติมได้ไหมครับ?"'),
+            h("p",{style:{margin:"8px 0 0",fontSize:12,color:B.gray,lineHeight:1.8}},"ถามต่อ: ชื่อองค์กร? จำนวนผู้เข้าอบรม? วันที่สะดวก? → ส่งใบเสนอราคาทาง LINE/Email")
+          ),
+          h("div",{style:{background:"#FAFAFA",borderRadius:10,padding:"16px",borderLeft:"4px solid "+B.blue}},
+            h("p",{style:{margin:"0 0 4px",fontSize:13,fontWeight:700,color:B.blue}},"LINE หลังโทร"),
+            h("p",{style:{margin:0,fontSize:13,color:B.dark,lineHeight:1.8}},'"สวัสดีครับ ตามที่คุยกันทางโทรศัพท์ ส่งใบเสนอราคาให้ตามนี้เลยครับ [แนบไฟล์] ถ้ามีคำถามเพิ่มเติมทักมาได้เลยครับ"')
+          )
+        ),
+
+        // Section 4: สรุป Flow
+        h("div",{style:{background:B.white,borderRadius:14,padding:"24px",marginBottom:16,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}},
+          h("h3",{style:{margin:"0 0 16px",fontSize:18,color:B.red}},"สรุป Flow การติดตาม"),
+          h("div",{style:{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}},
+            ["Lead เข้า","โทร 1 ชม.","ชวนแอด LINE","ส่งวิดีโอ D1","สถิติ CPR D3","เสนอรอบ D7"].map(function(s,i,arr){
+              return [h("div",{key:s,style:{background:i===0?B.redLight:i===arr.length-1?B.greenLight:B.grayLight,borderRadius:10,padding:"10px 14px",textAlign:"center",flex:"1",minWidth:80}},
+                h("div",{style:{fontSize:12,fontWeight:700,color:i===0?B.red:i===arr.length-1?B.green:B.dark}},s)
+              ),i<arr.length-1?h("span",{key:s+"a",style:{display:"flex",alignItems:"center",fontSize:16,color:B.gray}},"→"):null]
+            })
+          ),
+          h("div",{style:{background:B.redLight,borderRadius:10,padding:"14px 18px"}},
+            h("p",{style:{margin:0,fontSize:13,fontWeight:700,color:B.red}},"กฎสำคัญ:"),
+            h("p",{style:{margin:"4px 0 0",fontSize:13,color:B.dark,lineHeight:1.8}},"1. ตอบ Lead ภายใน 1 ชั่วโมง — Lead ร้อนปิดได้ง่ายกว่า"),
+            h("p",{style:{margin:"2px 0 0",fontSize:13,color:B.dark,lineHeight:1.8}},"2. ทุกครั้งที่ติดต่อ อัปเดตสถานะ + หมายเหตุในเว็บทันที"),
+            h("p",{style:{margin:"2px 0 0",fontSize:13,color:B.dark,lineHeight:1.8}},"3. Lead B2B (องค์กร/เช่าอุปกรณ์) ต้องโทรภายใน 30 นาที"),
+            h("p",{style:{margin:"2px 0 0",fontSize:13,color:B.dark,lineHeight:1.8}},"4. ถ้าโทรไม่รับ 2 ครั้ง ส่ง LINE แทน อย่าโทรรบกวนเกินไป")
+          )
+        )
+      ):null
     ):null);
 }
 
