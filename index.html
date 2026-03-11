@@ -54,17 +54,28 @@ var _jsonpId=0;
 function jsonp(url,cb){var id="_jp"+(_jsonpId++);window[id]=function(d){delete window[id];var s=document.getElementById(id);if(s)s.remove();cb(null,d)};var s=document.createElement("script");s.id=id;s.src=url+"&callback="+id;s.onerror=function(){delete window[id];s.remove();cb(new Error("Network error"))};document.body.appendChild(s)}
 function apiRead(cb){jsonp(API+"?action=read",cb)}
 function apiAdd(data,cb){
-  var BATCH=5;var total=data.length;var done=0;var errors=[];
-  function sendBatch(i){
+  // Try fetch first (fast, works on desktop)
+  var url=API+"?action=add&data="+encodeURIComponent(JSON.stringify(data));
+  if(window.fetch){
+    fetch(url).then(function(r){return r.json()}).then(function(d){cb(null,d)}).catch(function(){
+      // Fallback to JSONP batch if fetch fails (mobile)
+      apiAddJsonp(data,cb);
+    });
+  } else {
+    apiAddJsonp(data,cb);
+  }
+}
+function apiAddJsonp(data,cb){
+  var BATCH=3;var total=data.length;var errors=[];
+  function go(i){
     if(i>=total){cb(errors.length?errors[0]:{success:true,added:total});return}
     var chunk=data.slice(i,Math.min(i+BATCH,total));
-    jsonp(API+"?action=add&data="+encodeURIComponent(JSON.stringify(chunk)),function(err,d){
+    jsonp(API+"?action=add&data="+encodeURIComponent(JSON.stringify(chunk)),function(err){
       if(err)errors.push(err);
-      done+=chunk.length;
-      sendBatch(i+BATCH);
+      go(i+BATCH);
     });
   }
-  sendBatch(0);
+  go(0);
 }
 function apiUpdate(row,col,value,cb){jsonp(API+"?action=update&row="+row+"&col="+col+"&value="+encodeURIComponent(value),cb)}
 
@@ -87,7 +98,19 @@ function App(){
     apiRead(function(err,data){
       setLoading(false);
       if(err){setMsg("โหลดข้อมูลไม่ได้: "+err);return}
-      if(data&&data.leads){setLeads(data.leads);setMsg("โหลด "+data.leads.length+" รายการจาก Google Sheet")}
+      if(data&&data.leads){
+        // Fix date and phone from Sheet
+        var fixed=data.leads.map(function(l){
+          var d=l.date||"";
+          // Fix long date string
+          if(d.length>20){try{var dt=new Date(d);if(!isNaN(dt.getTime()))d=dt.toLocaleDateString("th-TH",{year:"numeric",month:"short",day:"numeric"})}catch(e){}}
+          // Fix phone missing leading 0
+          var p=l.phone?l.phone.toString():"";
+          if(p&&p.length===9&&p[0]!=="0")p="0"+p;
+          if(p&&p.length===10&&p[0]!=="0")p="0"+p;
+          return Object.assign({},l,{date:d,phone:p});
+        });
+        setLeads(fixed);setMsg("โหลด "+fixed.length+" รายการจาก Google Sheet")}
       else{setMsg("ยังไม่มีข้อมูลใน Sheet")}
       setTimeout(function(){setMsg("")},3000);
     });
